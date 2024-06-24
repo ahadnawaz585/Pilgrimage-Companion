@@ -12,9 +12,17 @@ import colors from './Utils/colors';
 import LanguageSelectScreen from './screens/LanguageSelectScreen';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import Store from './store/Store';
+import TranslateScreen from './screens/Translation';
+import MapScreen from './screens/MapsScreen';
 // import AsyncStorage from '@react-native-async-storage/async-storage';
 const Stack = createNativeStackNavigator();
-
+import VoiceToVoiceScreen from './screens/VoiceTovoice';
+import TranslateImageText from './screens/ImageToText';
+import GuidanceScreen from './screens/Guidance';
+import IhramScreen from './screens/Ihram';
+import TawafScreen from './screens/Tawaf';
+import SaiScreen from './screens/sai';
+import HalqandTaqsirScreen from './screens/Halqtaqsir';
 // AsyncStorage.clear();
 SplashScreen.preventAutoHideAsync();
 
@@ -78,7 +86,7 @@ export default function App() {
                   name='Main'
                   component={TabNavigator}
                   options={{
-                    headerTitle: 'Translate',
+                    headerTitle: 'Home',
                   }}
                 />
               </Stack.Group>
@@ -91,6 +99,69 @@ export default function App() {
                 <Stack.Screen
                   name='languageSelector'
                   component={LanguageSelectScreen}
+                />
+                 <Stack.Screen
+                  name='voice'
+                  component={VoiceToVoiceScreen}
+                  options={{
+                    headerTitle: 'Voice',
+                  }}
+                />
+                 <Stack.Screen
+                  name='ihram'
+                  component={IhramScreen}
+                  options={{
+                    headerTitle: 'Ihram',
+                  }}
+                />
+                 <Stack.Screen
+                  name='tawaf'
+                  component={TawafScreen}
+                  options={{
+                    headerTitle: 'Tawaf',
+                  }}
+                />
+                 <Stack.Screen
+                  name='sai'
+                  component={SaiScreen}
+                  options={{
+                    headerTitle: 'Sa’i',
+                  }}
+                />
+                 <Stack.Screen
+                  name='halqtaqsir'
+                  component={HalqandTaqsirScreen}
+                  options={{
+                    headerTitle: 'Halq-Taqsir',
+                  }}
+                />
+                 <Stack.Screen
+                  name='image'
+                  component={TranslateImageText}
+                  options={{
+                    headerTitle: 'Image',
+                  }}
+                />
+                 <Stack.Screen
+                  name='guidance'
+                  component={GuidanceScreen}
+                  options={{
+                    headerTitle: 'Guidance',
+                  }}
+                />
+                <Stack.Screen
+                  name='translation'
+                  component={TranslateScreen}
+                  options={{
+                    headerTitle: 'Translate',
+                  }}
+                />
+                <Stack.Screen
+                  name='maps'
+                  component={MapScreen}
+                  options={{
+                    headerTitle: 'Maps',
+                  }}
                 />
               </Stack.Group>
             </Stack.Navigator>

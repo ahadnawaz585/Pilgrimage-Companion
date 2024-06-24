@@ -1,324 +1,308 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { StyleSheet, FlatList, Text, TouchableOpacity, View, TextInput, ActivityIndicator } from 'react-native';
-import { AntDesign, Ionicons, MaterialIcons, FontAwesome6 } from '@expo/vector-icons';
-import * as Clipboard from 'expo-clipboard';
-import * as Speech from 'expo-speech';
-import { useDispatch, useSelector } from 'react-redux';
-import uuid from 'react-native-uuid';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
+import { Button, IconButton } from 'react-native-paper';
+import * as Animatable from 'react-native-animatable';
+import { MaterialIcons, FontAwesome5, Entypo, Ionicons } from '@expo/vector-icons';
 import colors from '../Utils/colors';
-import supportedLanguages from '../Utils/supportedLanguages';
-import TranslateText from '../Service/languageTranslation.service';
-import TranslationResult from '../components/TranslationResult';
-import { addHistoryItem, setHistoryItems } from '../store/historySlice';
-import { setSavedItems } from '../store/savedItemsSlice';
-import SpeechToText from '../components/text';
+import { LinearGradient } from 'expo-linear-gradient';
 
-export default function HomeScreen(props) {
-    const dispatch = useDispatch();
-    const history = useSelector(state => state.history.items);
-    const [enteredText, setEnteredText] = useState("");
-    const [resultText, setResultText] = useState("");
-    const [languageTo, setLanguageTo] = useState("fr");
-    const [languageFrom, setLanguageFrom] = useState("auto");
-    const [isLoading, setIsLoading] = useState(false);
-    const params = props.route.params || {};
-    const [speaking, setSpeaking] = useState(false); // Track if speech is currently playing
-    const [speakingInput, setInputSpeaking] = useState(false); // Track if speech is currently playing
+const translationIcons = [
+    <MaterialIcons name="translate" size={50} color="#3f51b5" key="translate" />,
+    <FontAwesome5 name="language" size={50} color="#3f51b5" key="language" />,
+    <Entypo name="language" size={50} color="#3f51b5" key="entypo-language" />,
+    <Ionicons name="language-outline" size={50} color="#3f51b5" key="ionicons-language" />
+];
+
+export default function HomeScreen({ navigation }) {
+    const [translationIcon, setTranslationIcon] = useState(translationIcons[0]);
 
     useEffect(() => {
-        const loadData = async () => {
-            try {
-                const historyString = await AsyncStorage.getItem('history');
-                if (historyString !== null) {
-                    const history = JSON.parse(historyString);
-                    dispatch(setHistoryItems({ items: history }));
-                }
-
-                const savedItemsString = await AsyncStorage.getItem('savedItems');
-                if (savedItemsString !== null) {
-                    const savedItems = JSON.parse(savedItemsString);
-                    dispatch(setSavedItems({ items: savedItems }));
-                }
-            } catch (error) {
-                console.error('Error loading data:', error);
-            }
+        const updateIcon = () => {
+            const randomIndex = Math.floor(Math.random() * translationIcons.length);
+            setTranslationIcon(translationIcons[randomIndex]);
         };
 
-        loadData();
-    }, [dispatch]);
+        updateIcon(); // Initial icon setup
+        const intervalId = setInterval(updateIcon, 2000);
 
-    useEffect(() => {
-        if (params.languageTo) {
-            setLanguageTo(params.languageTo);
-        }
-
-        if (params.languageFrom) {
-            setLanguageFrom(params.languageFrom);
-        }
-    }, [params.languageFrom, params.languageTo]);
-
-    useEffect(() => {
-        const saveHistory = async () => {
-            try {
-                await AsyncStorage.setItem('history', JSON.stringify(history));
-            } catch (error) {
-                console.log(error);
-            }
-        }
-
-        saveHistory();
-    }, [history]);
-
-    const onSubmit = useCallback(async () => {
-        try {
-            setIsLoading(true);
-            const translation = await TranslateText(enteredText, languageFrom, languageTo);
-            if (!translation) {
-                setResultText("");
-                return;
-            }
-            setResultText(translation);
-
-            const id = uuid.v4();
-            const result = {
-                id,
-                dateTime: new Date().toISOString(),
-                translation,
-                originalText: enteredText
-            };
-            dispatch(addHistoryItem({ item: result }));
-            setIsLoading(false);
-        } catch (error) {
-            console.error('Error translating text:', error);
-            setIsLoading(false);
-        }
-    }, [enteredText, languageFrom, languageTo, dispatch]);
-
-    const copyToClipboard = useCallback(async () => {
-        await Clipboard.setStringAsync(resultText);
-    }, [resultText]);
-
-    const speakText = useCallback(() => {
-        Speech.speak(resultText, {
-            language: languageTo,
-            onStart: () => setSpeaking(true),
-            onDone: () => setSpeaking(false),
-            onError: () => setSpeaking(false),
-        });
-    }, [resultText, languageTo]);
-
-    const speakInputText = useCallback(() => {
-        Speech.speak(enteredText, {
-            language: languageFrom,
-            onStart: () => setInputSpeaking(true),
-            onDone: () => setInputSpeaking(false),
-            onError: () => setInputSpeaking(false),
-        });
-    }, [enteredText, languageFrom]);
-
-    const stopSpeaking = useCallback(() => {
-        Speech.stop();
+        return () => clearInterval(intervalId);
     }, []);
 
-    const onArrowClick = () => {
-        let swappedLanguages;
-        let swappedTexts;
-
-        if (languageFrom === "auto") {
-            swappedLanguages = swap("en", languageTo);
-        } else {
-            swappedLanguages = swap(languageFrom, languageTo);
+    const handleImageCapture = async () => {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== 'granted') {
+            Alert.alert('Permission required', 'Permission to access the camera roll is required!');
+            return;
         }
 
-        if ((enteredText !== "") && (resultText !== "")) {
-            swappedTexts = swap(enteredText, resultText);
-            setEnteredText(swappedTexts[0]);
-            setResultText(swappedTexts[1]);
+        let result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsEditing: true,
+            aspect: [4, 3],
+            quality: 1,
+        });
+
+        if (!result) {
+            // Handle case when result is null (e.g., user cancels image selection)
+            console.log('Image selection cancelled or failed.');
+            return;
         }
 
-        setLanguageFrom(swappedLanguages[0]);
-        setLanguageTo(swappedLanguages[1]);
+        if (!result.cancelled) {
+            try {
+                setIsImageLoading(true);
+                const formData = new FormData();
+                formData.append('image', {
+                    uri: result.assets[0].uri,
+                    type: 'image/jpeg',
+                    name: 'photo.jpg',
+                });
+
+                const response = await uploadImageToTextAPI(formData);
+                setIsImageLoading(false);
+
+                if (response && response.length > 0) {
+                    console.log(response);
+                } else {
+                    console.error('No text detected in the image');
+                }
+            } catch (error) {
+                setIsImageLoading(false);
+                console.error('Error processing image:', error.message);
+            }
+        }
+    };
 
 
+    const goToTranslationScreen = () => {
+        navigation.navigate('translation');
+    };
 
-    }
+    const goToGuidanceScreen = () => {
+        navigation.navigate('guidance');
+    };
 
-    const swap = (a, b) => {
-        let temp = a;
-        a = b;
-        b = temp;
-        return [a, b];
-    }
+    const goToVoiceTranslationScreen = () => {
+        navigation.navigate('voice');
+    };
+
+    const goToImageTranslationScreen = () => {
+        navigation.navigate('image');
+    };
+
+    const goToMapScreen = () => {
+        navigation.navigate('maps');
+    };
 
     return (
-        <View style={styles.container}>
-            <SpeechToText/>
-            {/* <View style={styles.languageContainer}>
+        <LinearGradient
+        colors={['#d4e6f1', '#a9cce3']} 
+            style={styles.container}
+        >
+            <View style={styles.topSection}>
                 <TouchableOpacity
-                    style={styles.languageOption}
-                    onPress={() => props.navigation.navigate("languageSelector", { title: "Translate from", selected: languageFrom, mode: 'from' })}>
-                    <Text style={styles.languageOptionText}>{supportedLanguages[languageFrom]}</Text>
+                    style={styles.fakeInputContainer}
+                    onPress={goToTranslationScreen}
+                    accessibilityLabel="Select Languages"
+                >
+                    <Text style={styles.fakeInputText}>Select Languages</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.arrowContainer} onPress={() => onArrowClick()} >
-                    <FontAwesome6 name="arrow-right-arrow-left" size={20} color={colors.lightGrey} />
-                </TouchableOpacity>
-                <TouchableOpacity
-                    style={styles.languageOption}
-                    onPress={() => props.navigation.navigate("languageSelector", { title: "Translate to", selected: languageTo, mode: 'to' })}>
-                    <Text style={styles.languageOptionText}>{supportedLanguages[languageTo]}</Text>
-                </TouchableOpacity>
+                {translationIcon && (
+                    <Animatable.View animation="bounceIn" duration={1500}>
+                        <TouchableOpacity
+                            onPress={goToTranslationScreen}
+                            style={styles.translationIcon}
+                            accessibilityLabel="Translation Icon"
+                        >
+                            {translationIcon}
+                        </TouchableOpacity>
+                    </Animatable.View>
+                )}
             </View>
 
-            <View style={styles.inputContainer}>
-                <TextInput
-                    multiline
-                    placeholder='Enter Text'
-                    style={styles.textInput}
-                    onChangeText={setEnteredText}
-                    value={enteredText}
-                />
+            <View style={styles.section}>
+                <Animatable.View
+                    animation="bounceInDown"
+                    duration={1000}
+                    style={styles.titleContainer}
+                >
+                    <Text style={styles.title}>Welcome to ULT</Text>
+                </Animatable.View>
+            </View>
 
-                {(enteredText !== "") && <TouchableOpacity
-                    onPress={() => setEnteredText("")}
-                    disabled={enteredText === ""}
-                    style={styles.iconContainer}>
-                    <MaterialIcons name="clear" size={15} color={enteredText !== "" ? colors.textColor : colors.textColorDisabled} />
+            <View style={styles.newSection}>
+                <Animatable.View animation="bounceInLeft" duration={1000} style={styles.optionContainer}>
+                    <TouchableOpacity
+                        onPress={goToTranslationScreen}
+                        style={styles.option}
+                        accessibilityLabel="Translation"
+                    >
+                        <View style={styles.iconContainer}>
+                            <Ionicons name="image" size={50} color="#3f51b5" key="ionicons-language" />
+                        </View>
+                        <Text style={styles.optionText}>Text/Image Translation</Text>
+                    </TouchableOpacity>
+                </Animatable.View>
 
-                </TouchableOpacity>}
-                <TouchableOpacity
-                    onPress={speakInputText}
-                    disabled={enteredText === ""}
-                    style={styles.iconContainer}>
+                <Animatable.View animation="bounceInRight" duration={1000} style={styles.optionContainer}>
+                    <TouchableOpacity
+                        onPress={goToVoiceTranslationScreen}
+                        style={styles.option}
+                        accessibilityLabel="Voice-to-Voice Translation"
+                    >
+                        <View style={styles.iconContainer}>
+                            <Ionicons name="mic-outline" size={50} color="#3f51b5" />
+                        </View>
+                        <Text style={styles.optionText}>Voice Translation</Text>
+                    </TouchableOpacity>
+                </Animatable.View>
+            </View>
 
-                    <AntDesign name={speakingInput ? "pausecircle" : "sound"} size={24}
-                        color={enteredText !== "" ? colors.textColor : colors.textColorDisabled}
-                    />
-                </TouchableOpacity>
-                <TouchableOpacity
-                    onPress={isLoading ? undefined : onSubmit}
-                    disabled={enteredText === ""}
-                    style={styles.iconContainer}>
-                    {isLoading ? (
-                        <ActivityIndicator size={'small'} color={colors.primary} />
-                    ) : (
-
-                        <Ionicons
-                            name="arrow-forward-circle-sharp"
-                            size={24}
-                            color={enteredText !== "" ? colors.primary : colors.primaryDisabled}
-                        />
+            <Animatable.View animation="fadeInUp" duration={1000} delay={500} style={styles.buttonColumn}>
+                <Button
+                    mode="outlined"
+                    onPress={goToTranslationScreen}
+                    style={styles.outlinedButton}
+                    labelStyle={styles.optionText}
+                    icon={({ color, size }) => (
+                        <MaterialIcons name="translate" size={size} color={color} />
                     )}
-                </TouchableOpacity>
-
-            </View>
-
-            <View style={styles.resultContainer}>
-
-                <Text style={styles.resultText}>{resultText}</Text>
-                {(resultText !== "") && <TouchableOpacity
-                    onPress={() => setResultText("")}
-                    disabled={resultText === ""}
-                    style={styles.iconContainer}>
-                    <MaterialIcons name="clear" size={15} color={resultText !== "" ? colors.textColor : colors.textColorDisabled} />
-
-                </TouchableOpacity>}
-                <TouchableOpacity
-                    onPress={speakText}
-                    disabled={resultText === ""}
-                    style={styles.iconContainer}>
-
-                    <AntDesign name={speaking ? "pausecircle" : "sound"} size={24}
-                        color={resultText !== "" ? colors.textColor : colors.textColorDisabled}
-                    />
-                </TouchableOpacity>
-                <TouchableOpacity
-                    onPress={copyToClipboard}
-                    disabled={resultText === ""}
-                    style={styles.iconContainer}>
-                    <MaterialIcons
-                        name="content-copy"
-                        size={24}
-                        color={resultText !== "" ? colors.textColor : colors.textColorDisabled}
-                    />
-                </TouchableOpacity>
-            </View>
-
-            <View style={styles.historyContainer}>
-                <FlatList
-                    data={history}
-                    keyExtractor={(item) => item.id.toString()}
-                    renderItem={({ item }) => <TranslationResult itemId={item.id} />}
-                />
-            </View> */}
-        </View>
+                >
+                    Translation
+                </Button>
+                {/* <Button
+                    mode="outlined"
+                    onPress={goToMapScreen}
+                    style={styles.outlinedButton}
+                    labelStyle={styles.optionText}
+                    icon={({ color, size }) => (
+                        <MaterialIcons name="map" size={size} color={color} />
+                    )}
+                >
+                    Maps
+                </Button> */}
+                <Button
+                    mode="outlined"
+                    onPress={goToGuidanceScreen}
+                    style={styles.outlinedButton}
+                    labelStyle={styles.optionText}
+                    icon={({ color, size }) => (
+                        <MaterialIcons name="directions-walk" size={size} color={color} />
+                    )}
+                >
+                    Hajj/Umrah Guidance
+                </Button>
+            </Animatable.View>
+        </LinearGradient>
     );
 }
-
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#fff',
-    },
-    languageContainer: {
-        flexDirection: 'row',
-        borderBottomColor: colors.lightGrey,
-        borderBottomWidth: 1,
-    },
-    languageOption: {
-        flex: 1,
-        alignItems: 'center',
         justifyContent: 'center',
-        paddingVertical: 15,
-    },
-    arrowContainer: {
-        width: 50,
         alignItems: 'center',
-        justifyContent: 'center',
-    },
-    languageOptionText: {
-        color: colors.primary,
-        fontFamily: 'regular',
-        letterSpacing: 0.3,
-    },
-    inputContainer: {
-        flexDirection: 'row',
-        borderBottomColor: colors.lightGrey,
-        borderBottomWidth: 1,
-    },
-    textInput: {
-        flex: 1,
-        marginTop: 10,
         paddingHorizontal: 20,
-        paddingVertical: 15,
-        fontFamily: 'regular',
-        letterSpacing: 0.3,
-        height: 90,
-        color: colors.textColor,
+    },
+    topSection: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        width: '100%',
+        paddingHorizontal: 20,
+        marginBottom: 20,
+    },
+    fakeInputContainer: {
+        flex: 1,
+        padding: 15,
+        backgroundColor: colors.greyBackground,
+        borderRadius: 10,
+        alignItems: 'center',
+        marginRight: 10,
+        // Shadow properties for iOS
+        shadowColor: colors.primary,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 2,
+        // Elevation for Android
+        elevation: 5,
+    },
+    fakeInputText: {
+        fontSize: 16,
+        color: colors.primary,
+    },
+    translationIcon: {
+        backgroundColor: colors.greyBackground,
+        borderRadius: 25,
+        padding: 10,
+        // Shadow properties for iOS
+        shadowColor: colors.primary,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 2,
+        // Elevation for Android
+        elevation: 5,
+    },
+    section: {
+        marginBottom: 20,
+        width: '100%',
+        alignItems: 'center',
+    },
+    titleContainer: {
+        marginBottom: 20,
+    },
+    title: {
+        fontSize: 28,
+        fontWeight: 'bold',
+        color: colors.primary,
+        textAlign: 'center',
+    },
+    newSection: {
+        flexDirection: 'row',
+        justifyContent: 'space-around',
+        alignItems: 'center',
+        width: '100%',
+        marginBottom: 20,
+    },
+    optionContainer: {
+        flex: 1,
+        alignItems: 'center',
+        marginHorizontal: 10,
+    },
+    option: {
+        padding: 20,
+        backgroundColor: colors.greyBackground,
+        borderRadius: 10,
+        alignItems: 'center',
+        width: '100%',
+        // Shadow properties for iOS
+        shadowColor: colors.primary,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 2,
+        // Elevation for Android
+        elevation: 5,
     },
     iconContainer: {
-        paddingHorizontal: 10,
+        marginBottom: 10,
+    },
+    optionText: {
+        fontSize: 16,
+        color: colors.primary,
+        textAlign: 'center',
+    },
+    buttonColumn: {
+        flexDirection: 'column',
         justifyContent: 'center',
         alignItems: 'center',
+        width: '90%',
+        marginTop: 20,
     },
-    resultContainer: {
-        borderBottomColor: colors.lightGrey,
-        borderBottomWidth: 1,
-        flexDirection: 'row',
-        height: 90,
-        paddingVertical: 15,
-    },
-    resultText: {
-        fontFamily: 'regular',
-        letterSpacing: 0.3,
-        color: colors.primary,
-        flex: 1,
-        marginHorizontal: 20,
-    },
-    historyContainer: {
-        backgroundColor: colors.greyBackground,
-        flex: 1,
-        padding: 10,
+    outlinedButton: {
+        borderColor: colors.primary,
+        borderWidth: 1,
+        borderRadius: 30,
+        width: '100%',
+        marginVertical: 10,
     },
 });

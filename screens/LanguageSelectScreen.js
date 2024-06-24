@@ -15,7 +15,7 @@ export default function LanguageSelectScreen({ navigation, route }) {
 
     const onLanguageSelect = useCallback(itemKey => {
         const dataKey = params.mode === 'to' ? 'languageTo' : 'languageFrom';
-        navigation.navigate("Home", { [dataKey]: itemKey });
+        navigation.navigate("translation", { [dataKey]: itemKey });
     }, [params, navigation]);
 
     const languagesList = Object.keys(supportedLanguages).filter(languageKey => {

@@ -7,18 +7,40 @@
       "developmentClient": true,
       "distribution": "internal",
       "android": {
-        "buildType" : "apk"
+        "buildType": "apk"
       },
-      "ios":{
-        "simulator" : true
+      "ios": {
+        "simulator": true
       }
     },
     "preview": {
-      "distribution": "internal"
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "ios": {
+        "simulator": false
+      }
     },
-    "production": {}
+    "production": {
+      "android": {
+        "buildType": "apk"
+      },
+      "ios": {
+        "simulator": false
+      }
+    }
   },
   "submit": {
-    "production": {}
+    "production": {
+      "android": {
+        "serviceAccountKeyPath": "./path/to/your-service-account-file.json",
+        "track": "production"
+      },
+      "ios": {
+        "appleId": "your-apple-id",
+        "ascAppId": "your-app-store-connect-app-id"
+      }
+    }
   }
 }

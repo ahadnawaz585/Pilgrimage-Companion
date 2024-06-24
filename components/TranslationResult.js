@@ -20,7 +20,7 @@ const TranslationResult = (props) => {
     const isSaved = savedItems.some((i) => i.id === itemId);
     const starIcon = isSaved ? 'star' : 'star-outlined';
 
-    const [speaking, setSpeaking] = useState(false); // Track if speech is currently playing
+    const [speaking, setSpeaking] = useState(false);
 
     const starredItem = useCallback(async () => {
         let newSavedItems;

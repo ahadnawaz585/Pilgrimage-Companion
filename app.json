@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "TextVoiceApp",
-    "slug": "TextVoiceApp",
+    "name": "ULT",
+    "slug": "voice-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -19,26 +19,26 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "permissions": ["android.permission.RECORD_AUDIO"],
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "INTERNET",
+        "android.permission.INTERNET"
+      ],
       "package": "com.ahadnawaz585.TextVoiceApp"
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-font",
-      [
-        "@react-native-voice/voice",
-        {
-          "microphonePermission": "Allow  to access your microphone",
-          "speechRecognitionPermission": "Allow  to access your speech recognition"
-        }
-      ]
+      "expo-font"
     ],
     "extra": {
       "eas": {
-        "projectId": "d8fd89cb-16f7-41a6-a4ee-0f52a865bc80"
+        "projectId": "37f39f5f-049f-4a17-b3df-152f8aec9aff"
       }
-    }
+    },
+    "owner": "ahadnawaz"
   }
 }
